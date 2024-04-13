@@ -19,6 +19,7 @@ var MyGameState = types.GameState{
 		Problem:  "FizzBuzz",
 	},
 }
+var PlayerStateBuffer = make(chan *types.PlayerState, 128)
 
 func Serve() {
 	QueueGroup.Add(MAX_QUEUED_PLAYERS)

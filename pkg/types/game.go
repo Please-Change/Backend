@@ -71,6 +71,7 @@ func (gs *GameState) SafeSetSettings(s GameSettings) {
 }
 
 type PlayerState struct {
-	Status ReadyState
-	Socket *websocket.Conn
+	Status      ReadyState
+	Socket      *websocket.Conn
+	SendMessage func(action Action, data interface{})
 }

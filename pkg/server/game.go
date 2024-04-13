@@ -15,6 +15,7 @@ const MAX_QUEUED_PLAYERS = 128
 
 func ProcessGame(ps *types.PlayerState) {
 	QueueGroup.Add(1)
+	PlayerStateBuffer <- ps
 	defer ps.Socket.Close()
 	defer QueueGroup.Done()
 	for {
@@ -152,6 +153,19 @@ func HandleStart(w http.ResponseWriter, r *http.Request) {
 	ps := types.PlayerState{
 		Status: types.Waiting,
 		Socket: conn,
+		SendMessage: func(action types.Action, data interface{}) {
+			QueueGroup.Add(1)
+			defer QueueGroup.Done()
+			var msg = map[string]interface{}{
+				"action": action,
+				"data":   data,
+			}
+
+			var w = bytes.NewBuffer(nil)
+			var enc = sonic.ConfigDefault.NewEncoder(w)
+			enc.Encode(msg)
+			conn.WriteMessage(0, w.Bytes())
+		},
 	}
 
 	go ProcessGame(&ps)
