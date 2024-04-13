@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-func ProcessGame(conn *websocket.Conn) {
+func ProcessGame(conn *websocket.Conn, gs *types.GameState) {
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -36,12 +36,12 @@ func ProcessGame(conn *websocket.Conn) {
 		case types.UsePowerUp:
 			{
 			}
-		case types.Pause:
+		case types.TogglePause:
 			{
 			}
 		case types.QuitGame:
 			{
-
+				break
 			}
 		}
 
@@ -64,5 +64,7 @@ func HandleStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go ProcessGame(conn)
+	newGame := types.GameState{}
+
+	go ProcessGame(conn, &newGame)
 }
