@@ -1,15 +1,15 @@
 package server
 
 import (
+	"github.com/Please-Change/backend/pkg/types"
+	"github.com/bytedance/sonic"
+	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"sync"
-
-	"github.com/bytedance/sonic"
-	"github.com/gorilla/websocket"
 )
 
-func Process(conn *websocket.Conn) {
+func ProcessGame(conn *websocket.Conn) {
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -22,15 +22,34 @@ func Process(conn *websocket.Conn) {
 			break
 		}
 		action, err := root.Get("action").String()
-		if err != nil {
-			log.Printf("read: %s\n", err)
+
+		switch action {
+		case types.KeyPress:
+			{
+				key, err := root.Get("key").String()
+				if err != nil {
+					log.Printf("read: %s", err)
+				}
+				log.Println("Entered: ", key)
+
+			}
+		case types.UsePowerUp:
+			{
+			}
+		case types.Pause:
+			{
+			}
+		case types.QuitGame:
+			{
+
+			}
 		}
-		log.Printf("recv: %s\n", action)
+
 	}
 	defer conn.Close()
 }
 
-func handleGame(w http.ResponseWriter, r *http.Request) {
+func HandleStart(w http.ResponseWriter, r *http.Request) {
 	var upgrade = websocket.Upgrader{
 		ReadBufferSize:  512,
 		WriteBufferSize: 512,
@@ -45,5 +64,5 @@ func handleGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go Process(conn)
+	go ProcessGame(conn)
 }
