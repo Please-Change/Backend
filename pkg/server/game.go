@@ -15,6 +15,7 @@ func handleGame(w http.ResponseWriter, r *http.Request) {
 		WriteBufferPool: &sync.Pool{},
 	}
 
+	upgrade.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrade.Upgrade(w, r, nil)
 
 	if err != nil {
