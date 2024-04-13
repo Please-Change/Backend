@@ -1,4 +1,4 @@
-package backend
+package server
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 
 const PORT = 3000
 
-func serve() {
-	http.ListenAndServe(fmt.Sprintf(":%d", PORT), nil)
-
+func Serve() {
 	fmt.Printf("Serving on %d", PORT)
+
+	http.ListenAndServe(fmt.Sprintf(":%d", PORT), nil)
 }
