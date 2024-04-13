@@ -30,6 +30,10 @@ func ProcessGame(gs *types.GameState) {
 		}
 
 		action, err := root.Get("action").String()
+		if err != nil {
+			log.Printf("read: %s\n", err)
+			break
+		}
 
 		log.Printf("Action: %s\n", action)
 
@@ -78,10 +82,20 @@ func ProcessGame(gs *types.GameState) {
 			}
 		case types.StatusRequest:
 			{
+				var msg = map[string]interface{}{
+					"action": types.Action(types.PlayerCount),
+					"data": map[string]interface{}{
+						"status": gs.Status,
+					},
+				}
+
+				var w = bytes.NewBuffer(nil)
+				var enc = sonic.ConfigDefault.NewEncoder(w)
+				enc.Encode(msg)
+				gs.Socket.WriteMessage(mt, w.Bytes())
 
 			}
 		}
-
 	}
 }
 
@@ -102,9 +116,12 @@ func HandleStart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	game := types.GameState{
-		Ready:    types.Waiting,
-		Settings: types.GameSettings{},
-		Socket:   conn,
+		Ready: types.Waiting,
+		Settings: types.GameSettings{
+			Language: "javascript",
+			Problem:  "FizzBuzz",
+		},
+		Socket: conn,
 	}
 
 	go ProcessGame(&game)

@@ -7,25 +7,39 @@ type PowerUp int32
 type Action string
 
 const (
-	UsePowerUp    string = "use"
-	ChangeReady          = "ready"
-	ChangeSetting        = "config"
-	Submit               = "submit"
-	StatusRequest        = "status_req"
-	PlayerCount          = "players"
+	ChangeReady   = "ready"
+	ChangeSetting = "config"
+	PlayerCount   = "players"
+	StatusChanged = "status"
+	StatusRequest = "status_req"
+	Submit        = "submit"
+	SubmitFailed  = "submit_failed"
+	UsePowerUp    = "use"
 )
 
 type ReadyState string
 
 const (
-	Ready   string = "ready"
-	Active         = "active"
-	Waiting        = "waiting"
+	Ready   = "ready"
+	Active  = "active"
+	Waiting = "waiting"
 )
 
-type GameSettings struct{}
+type GameSettings struct {
+	Language string
+	Problem  string
+}
+
+type GameStatus string
+
+const (
+	Pending = "pending"
+	Running = "active"
+	End     = "end"
+)
 
 type GameState struct {
+	Status   GameStatus
 	Ready    ReadyState
 	Settings GameSettings
 	Socket   *websocket.Conn
