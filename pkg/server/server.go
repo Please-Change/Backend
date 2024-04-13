@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-const PORT = 3000
+const PORT = 5174
 
 func Serve() {
 	fmt.Printf("Serving on %d\n", PORT)

@@ -5,8 +5,30 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/bytedance/sonic"
 	"github.com/gorilla/websocket"
 )
+
+func Process(conn *websocket.Conn) {
+	for {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			log.Printf("read: %s\n", err)
+			break
+		}
+		root, err := sonic.GetFromString(string(message))
+		if err != nil {
+			log.Printf("read: %s\n", err)
+			break
+		}
+		action, err := root.Get("action").String()
+		if err != nil {
+			log.Printf("read: %s\n", err)
+		}
+		log.Printf("recv: %s\n", action)
+	}
+	defer conn.Close()
+}
 
 func handleGame(w http.ResponseWriter, r *http.Request) {
 	var upgrade = websocket.Upgrader{
@@ -23,20 +45,5 @@ func handleGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer conn.Close()
-
-	for {
-		mt, message, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("read failed:", err)
-			break
-		}
-		input := string(message)
-		message = []byte(input)
-		err = conn.WriteMessage(mt, message)
-		if err != nil {
-			log.Println("write failed:", err)
-			break
-		}
-	}
+	go Process(conn)
 }
