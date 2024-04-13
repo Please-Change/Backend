@@ -1,26 +1,27 @@
 package types
 
 type GameState struct {
-	targetTextId int32
+	gameId       ObjectID
+	targetTextId ObjectID
 	currentText  chan string
 	powerups     []PowerUp
+	isPaused     bool
 }
 
-type PowerUp int32
+type PowerUp string
 
 const (
-	Undefined PowerUp = iota
-	SpeechToText
-	TextToSpeech
-	SwapKeys
-	BanKey
+	SpeechToText PowerUp = "speechtotext"
+	TextToSpeech         = "texttospeech"
+	SwapKeys             = "swapkeys"
+	BanKey               = "bankey"
 )
 
 type Action string
 
 const (
-	KeyPress   string = "key"
-	UsePowerUp        = "use"
-	QuitGame          = "quit"
-	Pause             = "stop"
+	KeyPress    string = "key"
+	UsePowerUp         = "use"
+	QuitGame           = "quit"
+	TogglePause        = "stop"
 )
