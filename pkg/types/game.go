@@ -12,7 +12,7 @@ const (
 	ChangeSetting        = "config"
 	Submit               = "submit"
 	StatusRequest        = "status_req"
-	// QuitGame             = "quit"
+	PlayerCount          = "players"
 )
 
 type ReadyState string

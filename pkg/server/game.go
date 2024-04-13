@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"log"
 	"net/http"
 	"sync"
@@ -10,13 +11,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const MAX_SIMULTANEOUS_PLAYERS = 8
 const MAX_QUEUED_PLAYERS = 128
 
 func ProcessGame(gs *types.GameState) {
+	QueueGroup.Add(1)
 	defer gs.Socket.Close()
+	defer QueueGroup.Done()
 	for {
-		_, message, err := gs.Socket.ReadMessage()
+		mt, message, err := gs.Socket.ReadMessage()
 		if err != nil {
 			log.Printf("read: %s\n", err)
 			break
@@ -49,18 +51,29 @@ func ProcessGame(gs *types.GameState) {
 					gs.Ready = types.ReadyState(types.Waiting)
 				} else if gs.Ready == types.ReadyState(types.Waiting) {
 					gs.Ready = types.ReadyState(types.Ready)
+
+					ReadyPlayerCount <- <-ReadyPlayerCount + 1
+					var msg = map[string]interface{}{
+						"action": types.Action(types.PlayerCount),
+						"data":   <-ReadyPlayerCount,
+					}
+
+					var w = bytes.NewBuffer(nil)
+					var enc = sonic.ConfigDefault.NewEncoder(w)
+					enc.Encode(msg)
+					gs.Socket.WriteMessage(mt, w.Bytes())
 				}
 			}
 		case types.ChangeSetting:
 			{
-				if gs.Ready == types.Waiting {
+				if gs.Ready == types.ReadyState(types.Waiting) {
 
 				}
 			}
 		case types.Submit:
 			{
 				if gs.Ready == types.Active {
-
+					// Check
 				}
 			}
 		case types.StatusRequest:
@@ -73,10 +86,7 @@ func ProcessGame(gs *types.GameState) {
 }
 
 func HandleStart(w http.ResponseWriter, r *http.Request) {
-	if len(queue) >= MAX_QUEUED_PLAYERS {
-		log.Println("Queued Player Limit Exceeded!")
-		return
-	}
+
 	var upgrade = websocket.Upgrader{
 		ReadBufferSize:  512,
 		WriteBufferSize: 512,
@@ -98,6 +108,7 @@ func HandleStart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go ProcessGame(&game)
+	QueueGroup.Wait()
 }
 
 func HandleComplete(w http.ResponseWriter, r *http.Request) {
