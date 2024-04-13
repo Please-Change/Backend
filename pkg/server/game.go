@@ -13,12 +13,12 @@ import (
 
 const MAX_QUEUED_PLAYERS = 128
 
-func ProcessGame(gs *types.GameState) {
+func ProcessGame(ps *types.PlayerState) {
 	QueueGroup.Add(1)
-	defer gs.Socket.Close()
+	defer ps.Socket.Close()
 	defer QueueGroup.Done()
 	for {
-		mt, message, err := gs.Socket.ReadMessage()
+		mt, message, err := ps.Socket.ReadMessage()
 		if err != nil {
 			log.Printf("read: %s\n", err)
 			break
@@ -40,7 +40,7 @@ func ProcessGame(gs *types.GameState) {
 		switch action {
 		case types.UsePowerUp:
 			{
-				if gs.Ready == types.Active {
+				if ps.Status == types.Active {
 					// Use the power up
 					used, err := root.Get("use").Int64()
 					if err != nil {
@@ -51,10 +51,10 @@ func ProcessGame(gs *types.GameState) {
 			}
 		case types.ChangeReady:
 			{
-				if gs.Ready == types.ReadyState(types.Ready) {
-					gs.Ready = types.ReadyState(types.Waiting)
-				} else if gs.Ready == types.ReadyState(types.Waiting) {
-					gs.Ready = types.ReadyState(types.Ready)
+				if ps.Status == types.ReadyState(types.Ready) {
+					ps.Status = types.ReadyState(types.Waiting)
+				} else if ps.Status == types.ReadyState(types.Waiting) {
+					ps.Status = types.ReadyState(types.Ready)
 
 					ReadyPlayerCount <- <-ReadyPlayerCount + 1
 					var msg = map[string]interface{}{
@@ -65,34 +65,34 @@ func ProcessGame(gs *types.GameState) {
 					var w = bytes.NewBuffer(nil)
 					var enc = sonic.ConfigDefault.NewEncoder(w)
 					enc.Encode(msg)
-					gs.Socket.WriteMessage(mt, w.Bytes())
+					ps.Socket.WriteMessage(mt, w.Bytes())
 				}
 			}
 		case types.ChangeSetting:
 			{
-				if gs.Ready == types.ReadyState(types.Waiting) {
+				if ps.Status == types.ReadyState(types.Waiting) {
 
 				}
 			}
 		case types.Submit:
 			{
-				if gs.Ready == types.Active {
+				if ps.Status == types.Active {
 					// Check
 				}
 			}
 		case types.StatusRequest:
 			{
-				var msg = map[string]interface{}{
-					"action": types.Action(types.PlayerCount),
-					"data": map[string]interface{}{
-						"status": gs.Status,
-					},
-				}
+				// var msg = map[string]interface{}{
+				// 	"action": types.Action(types.PlayerCount),
+				// 	"data": map[string]interface{}{
+				// 		"status": ps.Status,
+				// 	},
+				// }
 
-				var w = bytes.NewBuffer(nil)
-				var enc = sonic.ConfigDefault.NewEncoder(w)
-				enc.Encode(msg)
-				gs.Socket.WriteMessage(mt, w.Bytes())
+				// var w = bytes.NewBuffer(nil)
+				// var enc = sonic.ConfigDefault.NewEncoder(w)
+				// enc.Encode(msg)
+				// gs.Socket.WriteMessage(mt, w.Bytes())
 
 			}
 		}
@@ -100,7 +100,6 @@ func ProcessGame(gs *types.GameState) {
 }
 
 func HandleStart(w http.ResponseWriter, r *http.Request) {
-
 	var upgrade = websocket.Upgrader{
 		ReadBufferSize:  512,
 		WriteBufferSize: 512,
@@ -115,12 +114,12 @@ func HandleStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	game := types.GameState{
-		Ready: types.Waiting,
-		Settings: types.GameSettings{
-			Language: "javascript",
-			Problem:  "FizzBuzz",
-		},
+	game := types.PlayerState{
+		Status: types.Waiting,
+		// Settings: types.GameSettings{
+		// 	Language: "javascript",
+		// 	Problem:  "FizzBuzz",
+		// },
 		Socket: conn,
 	}
 

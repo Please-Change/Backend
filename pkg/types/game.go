@@ -40,7 +40,10 @@ const (
 
 type GameState struct {
 	Status   GameStatus
-	Ready    ReadyState
 	Settings GameSettings
-	Socket   *websocket.Conn
+}
+
+type PlayerState struct {
+	Status ReadyState
+	Socket *websocket.Conn
 }
