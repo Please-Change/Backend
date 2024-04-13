@@ -42,10 +42,11 @@ func ProcessGame(ps *types.PlayerState) {
 			{
 				if ps.Status == types.Active {
 					// Use the power up
-					used, err := root.Get("use").Int64()
+					used, err := root.Get("data").Int64()
 					if err != nil {
 						log.Printf("read: %s\n", err)
 					}
+					// TODO: Forward
 					log.Printf("Used item %d\n", used)
 				}
 			}
@@ -65,13 +66,48 @@ func ProcessGame(ps *types.PlayerState) {
 					var w = bytes.NewBuffer(nil)
 					var enc = sonic.ConfigDefault.NewEncoder(w)
 					enc.Encode(msg)
+					// TODO: Forward to everyone
 					ps.Socket.WriteMessage(mt, w.Bytes())
 				}
 			}
 		case types.ChangeSetting:
-			{
-				if ps.Status == types.ReadyState(types.Waiting) {
+			if ps.Status == types.ReadyState(types.Waiting) && MyGameState.Status == types.Pending {
+				language, err := root.Get("data").Get("language").String()
+				if err != nil {
+					log.Printf("read: %s\n", err)
+					break
+				}
 
+				problem, err := root.Get("data").Get("problem").String()
+				if err != nil {
+					log.Printf("read: %s\n", err)
+					break
+				}
+
+				MyGameState.SafeSetSettings(types.GameSettings{
+					Language: language,
+					Problem:  problem,
+				})
+
+				// TODO: Forward update to everyone
+			}
+		case types.StatusChanged:
+			{
+				if ps.Status == types.ReadyState(types.Waiting) && MyGameState.Status == types.Pending {
+					state, err := root.Get("data").Get("status").String()
+					if err != nil {
+						log.Printf("read: %s\n", err)
+						break
+					}
+
+					if state != types.Running {
+						log.Printf("Incorrect state, cannot start")
+						break
+					}
+
+					MyGameState.SafeSetStatus(types.Running)
+
+					// TODO: Send change effect
 				}
 			}
 		case types.Submit:
@@ -82,18 +118,17 @@ func ProcessGame(ps *types.PlayerState) {
 			}
 		case types.StatusRequest:
 			{
-				// var msg = map[string]interface{}{
-				// 	"action": types.Action(types.PlayerCount),
-				// 	"data": map[string]interface{}{
-				// 		"status": ps.Status,
-				// 	},
-				// }
+				var msg = map[string]interface{}{
+					"action": types.Action(types.PlayerCount),
+					"data": map[string]interface{}{
+						"status": MyGameState.Status,
+					},
+				}
 
-				// var w = bytes.NewBuffer(nil)
-				// var enc = sonic.ConfigDefault.NewEncoder(w)
-				// enc.Encode(msg)
-				// gs.Socket.WriteMessage(mt, w.Bytes())
-
+				var w = bytes.NewBuffer(nil)
+				var enc = sonic.ConfigDefault.NewEncoder(w)
+				enc.Encode(msg)
+				ps.Socket.WriteMessage(mt, w.Bytes())
 			}
 		}
 	}
@@ -114,16 +149,12 @@ func HandleStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	game := types.PlayerState{
+	ps := types.PlayerState{
 		Status: types.Waiting,
-		// Settings: types.GameSettings{
-		// 	Language: "javascript",
-		// 	Problem:  "FizzBuzz",
-		// },
 		Socket: conn,
 	}
 
-	go ProcessGame(&game)
+	go ProcessGame(&ps)
 	QueueGroup.Wait()
 }
 

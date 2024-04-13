@@ -4,13 +4,21 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+
+	"github.com/Please-Change/backend/pkg/types"
 )
 
 const PORT = 5174
 
 var QueueGroup = new(sync.WaitGroup)
-var CurrentlyInGame = make(chan bool)
 var ReadyPlayerCount = make(chan int64)
+var MyGameState = types.GameState{
+	Status: types.Pending,
+	Settings: types.GameSettings{
+		Language: "javascript",
+		Problem:  "FizzBuzz",
+	},
+}
 
 func Serve() {
 	QueueGroup.Add(MAX_QUEUED_PLAYERS)

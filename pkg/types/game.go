@@ -1,6 +1,10 @@
 package types
 
-import "github.com/gorilla/websocket"
+import (
+	"sync"
+
+	"github.com/gorilla/websocket"
+)
 
 type PowerUp int32
 
@@ -39,8 +43,31 @@ const (
 )
 
 type GameState struct {
+	sync.Mutex
 	Status   GameStatus
 	Settings GameSettings
+}
+
+func (gs *GameState) SetStatus(s GameStatus) {
+	gs.Status = s
+}
+
+func (gs *GameState) SafeSetStatus(s GameStatus) {
+	gs.Lock()
+	defer gs.Unlock()
+
+	gs.SetStatus(s)
+}
+
+func (gs *GameState) SetSettings(s GameSettings) {
+	gs.Settings = s
+}
+
+func (gs *GameState) SafeSetSettings(s GameSettings) {
+	gs.Lock()
+	defer gs.Unlock()
+
+	gs.SetSettings(s)
 }
 
 type PlayerState struct {
