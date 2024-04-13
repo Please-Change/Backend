@@ -8,7 +8,9 @@ import (
 const PORT = 3000
 
 func Serve() {
-	fmt.Printf("Serving on %d", PORT)
+	fmt.Printf("Serving on %d\n", PORT)
+
+	http.HandleFunc("/server", handleGame)
 
 	http.ListenAndServe(fmt.Sprintf(":%d", PORT), nil)
 }
