@@ -71,7 +71,19 @@ func (gs *GameState) SafeSetSettings(s GameSettings) {
 }
 
 type PlayerState struct {
+	sync.Mutex
 	Status      ReadyState
 	Socket      *websocket.Conn
 	SendMessage func(action Action, data interface{})
+}
+
+func (gs *PlayerState) SetStatus(s ReadyState) {
+	gs.Status = s
+}
+
+func (gs *PlayerState) SafeSetStatus(s ReadyState) {
+	gs.Lock()
+	defer gs.Unlock()
+
+	gs.SetStatus(s)
 }

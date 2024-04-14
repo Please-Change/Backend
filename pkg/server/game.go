@@ -13,12 +13,15 @@ import (
 
 const MAX_QUEUED_PLAYERS = 128
 
-func ProcessGame(ps *types.PlayerState) {
+func ProcessGame(id int64) {
 	QueueGroup.Add(1)
-	PlayerStateBuffer <- ps
-	defer ps.Socket.Close()
+	defer func() {
+		ps := GetPlayerState(id)
+		ps.Socket.Close()
+	}()
 	defer QueueGroup.Done()
 	for {
+		ps := GetPlayerState(id)
 		mt, message, err := ps.Socket.ReadMessage()
 		if err != nil {
 			log.Printf("read: %s\n", err)
@@ -54,9 +57,15 @@ func ProcessGame(ps *types.PlayerState) {
 		case types.ChangeReady:
 			{
 				if ps.Status == types.ReadyState(types.Ready) {
-					ps.Status = types.ReadyState(types.Waiting)
-				} else if ps.Status == types.ReadyState(types.Waiting) {
-					ps.Status = types.ReadyState(types.Ready)
+					ps.SafeSetStatus(
+						types.ReadyState(types.Waiting),
+					)
+				} else if ps.Status ==
+					types.ReadyState(types.Waiting) {
+
+					ps.SafeSetStatus(
+						types.ReadyState(types.Ready),
+					)
 
 					ReadyPlayerCount <- <-ReadyPlayerCount + 1
 					var msg = map[string]interface{}{
@@ -168,7 +177,8 @@ func HandleStart(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	go ProcessGame(&ps)
+	id := AddPlayerState(&ps)
+	go ProcessGame(id)
 	QueueGroup.Wait()
 }
 
