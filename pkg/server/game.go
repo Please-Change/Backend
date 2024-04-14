@@ -47,7 +47,7 @@ func ProcessGame(id int64) {
 			{
 				if ps.Status == types.Active {
 					// Use the power up
-					used, err := root.Get("data").Int64()
+					used, err := root.Get("data").String()
 					if err != nil {
 						log.Printf("read: %s\n", err)
 					}

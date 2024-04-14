@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"os/exec"
 
 	"github.com/Please-Change/backend/pkg/types"
@@ -23,22 +24,15 @@ func (e Examiner) RunExam(program string, language types.Language, challenge str
 	switch language {
 	case types.C:
 		{
-			compilation := exec.Command("docker", "run", "-it", "runner_c:latest",
-				"bash", "-c", fmt.Sprintf("echo %s > program.c; gcc program.c; ./a.out", program))
-
-			compilationPipe, err := compilation.StdoutPipe()
+			outBin, err := exec.Command("docker", "run", "-it", "runner_c:latest",
+				"bash", "-c", fmt.Sprintf("echo %q > program.c; gcc program.c; ./a.out", program)).Output()
 
 			if err != nil {
+				log.Printf("Err: %s", err)
 				return err.Error()
 			}
 
-			var compilationOut []byte
-			_, err = compilationPipe.Read(compilationOut)
-			if err != nil {
-				return err.Error()
-			}
-
-			out := string(compilationOut)
+			out := string(outBin)
 			if out == expectedOutput {
 				return ""
 			} else {
@@ -50,22 +44,15 @@ func (e Examiner) RunExam(program string, language types.Language, challenge str
 		}
 	case types.Cpp:
 		{
-			compilation := exec.Command("docker", "run", "-it", "runner_cpp:latest",
-				"bash", "-c", fmt.Sprintf("echo %s > program.cpp; gcc program.cpp; ./a.out", program))
-
-			compilationPipe, err := compilation.StdoutPipe()
+			outBin, err := exec.Command("docker", "run", "-it", "runner_cpp:latest",
+				"bash", "-c", fmt.Sprintf("echo %q > program.cpp; gcc program.cpp; ./a.out", program)).Output()
 
 			if err != nil {
+				log.Printf("Err: %s", err)
 				return err.Error()
 			}
 
-			var compilationOut []byte
-			_, err = compilationPipe.Read(compilationOut)
-			if err != nil {
-				return err.Error()
-			}
-
-			out := string(compilationOut)
+			out := string(outBin)
 			if out == expectedOutput {
 				return ""
 			} else {
@@ -77,22 +64,16 @@ func (e Examiner) RunExam(program string, language types.Language, challenge str
 		}
 	case types.Rust:
 		{
-			compilation := exec.Command("docker", "run", "-it", "runner_rust:latest",
-				"bash", "-c", fmt.Sprintf("echo %s > program.rs; rustc program.rs; ./program", program))
-
-			compilationPipe, err := compilation.StdoutPipe()
+			outBin, err :=
+				exec.Command("docker", "run", "-i", "runner_rust:latest",
+					"bash", "-c", fmt.Sprintf("echo %q > program.rs; rustc program.rs; ./program", program)).Output()
 
 			if err != nil {
+				log.Printf("Err: %s", err)
 				return err.Error()
 			}
 
-			var compilationOut []byte
-			_, err = compilationPipe.Read(compilationOut)
-			if err != nil {
-				return err.Error()
-			}
-
-			out := string(compilationOut)
+			out := string(outBin)
 			if out == expectedOutput {
 				return ""
 			} else {
@@ -104,22 +85,16 @@ func (e Examiner) RunExam(program string, language types.Language, challenge str
 		}
 	case types.Go:
 		{
-			compilation := exec.Command("docker", "run", "-it", "runner_go:latest",
-				"bash", "-c", fmt.Sprintf("echo %s > main.go; go run .", program))
-
-			compilationPipe, err := compilation.StdoutPipe()
+			outBin, err :=
+				exec.Command("docker", "run", "-i", "runner_go:latest",
+					"bash", "-c", fmt.Sprintf("echo %q > main.go; go run .", program)).Output()
 
 			if err != nil {
+				log.Printf("Err: %s", err)
 				return err.Error()
 			}
 
-			var compilationOut []byte
-			_, err = compilationPipe.Read(compilationOut)
-			if err != nil {
-				return err.Error()
-			}
-
-			out := string(compilationOut)
+			out := string(outBin)
 			if out == expectedOutput {
 				return ""
 			} else {
@@ -131,22 +106,16 @@ func (e Examiner) RunExam(program string, language types.Language, challenge str
 		}
 	case types.JavaScript:
 		{
-			compilation := exec.Command("docker", "run", "-it", "runner_js:latest",
-				"bash", "-c", fmt.Sprintf("echo %s > program.js; node program.js", program))
-
-			compilationPipe, err := compilation.StdoutPipe()
+			outBin, err :=
+				exec.Command("docker", "run", "-i", "runner_js:latest",
+					"bash", "-c", fmt.Sprintf("echo %q > program.js; node program.js", program)).Output()
 
 			if err != nil {
+				log.Printf("Err: %s", err)
 				return err.Error()
 			}
 
-			var compilationOut []byte
-			_, err = compilationPipe.Read(compilationOut)
-			if err != nil {
-				return err.Error()
-			}
-
-			out := string(compilationOut)
+			out := string(outBin)
 			if out == expectedOutput {
 				return ""
 			} else {
@@ -158,22 +127,16 @@ func (e Examiner) RunExam(program string, language types.Language, challenge str
 		}
 	case types.Python:
 		{
-			compilation := exec.Command("docker", "run", "-it", "runner_py:latest",
-				"bash", "-c", fmt.Sprintf("echo %s > program.py; python program.py", program))
-
-			compilationPipe, err := compilation.StdoutPipe()
+			outBin, err :=
+				exec.Command("docker", "run", "-i", "runner_py:latest",
+					"bash", "-c", fmt.Sprintf("echo %q > program.py; python program.py", program)).Output()
 
 			if err != nil {
+				log.Printf("Err: %s", err)
 				return err.Error()
 			}
 
-			var compilationOut []byte
-			_, err = compilationPipe.Read(compilationOut)
-			if err != nil {
-				return err.Error()
-			}
-
-			out := string(compilationOut)
+			out := string(outBin)
 			if out == expectedOutput {
 				return ""
 			} else {
@@ -188,5 +151,4 @@ func (e Examiner) RunExam(program string, language types.Language, challenge str
 			return "Unknown filetype"
 		}
 	}
-
 }
