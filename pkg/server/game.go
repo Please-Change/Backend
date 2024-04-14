@@ -63,7 +63,6 @@ func ProcessGame(id int64) {
 
 				if ps.Status != types.ReadyState(status) {
 					Players.UpdateStatusFor(id, types.ReadyState(status))
-					ps.SendMessage(mt, types.ChangeReady, status)
 
 					if status == types.Ready {
 						Players.Broadcast(mt, types.Action(types.PlayerCount), Players.CountReady())
@@ -76,6 +75,7 @@ func ProcessGame(id int64) {
 					}
 				}
 
+				ps.SendMessage(mt, types.ChangeReady, status)
 			}
 		case types.ChangeSetting:
 			if ps.Status == types.ReadyState(types.Ready) && MyGameState.Status == types.Pending {
