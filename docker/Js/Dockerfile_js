@@ -1,4 +1,0 @@
-FROM nodejs:20.9.0
-
-WORKDIR /usr/share/coderunner
-

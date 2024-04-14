@@ -1,0 +1,5 @@
+FROM gcc:4.9
+
+COPY ../../internal/solutions /usr/share/coderunner/solutions
+
+WORKDIR /usr/share/coderunner

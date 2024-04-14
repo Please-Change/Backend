@@ -1,0 +1,5 @@
+FROM rust:1.67
+
+COPY ../../internal/solutions /usr/share/coderunner/solutions
+
+WORKDIR /usr/share/coderunner

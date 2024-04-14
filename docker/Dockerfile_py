@@ -1,0 +1,6 @@
+FROM python:3
+
+COPY ../../internal/solutions /usr/share/coderunner/solutions
+
+WORKDIR /usr/share/coderunner
+
