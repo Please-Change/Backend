@@ -1,8 +1,10 @@
 package types
 
 import (
+	"bytes"
 	"sync"
 
+	"github.com/bytedance/sonic"
 	"github.com/gorilla/websocket"
 )
 
@@ -72,18 +74,29 @@ func (gs *GameState) SafeSetSettings(s GameSettings) {
 
 type PlayerState struct {
 	sync.Mutex
-	Status      ReadyState
-	Socket      *websocket.Conn
-	SendMessage func(action Action, data interface{})
+	Status ReadyState
+	Socket *websocket.Conn
 }
 
-func (gs *PlayerState) SetStatus(s ReadyState) {
-	gs.Status = s
+func (ps *PlayerState) SetStatus(s ReadyState) {
+	ps.Status = s
 }
 
-func (gs *PlayerState) SafeSetStatus(s ReadyState) {
-	gs.Lock()
-	defer gs.Unlock()
+func (ps *PlayerState) SafeSetStatus(s ReadyState) {
+	ps.Lock()
+	defer ps.Unlock()
 
-	gs.SetStatus(s)
+	ps.SetStatus(s)
+}
+
+func (ps *PlayerState) SendMessage(mt int, action Action, data interface{}) {
+	var msg = map[string]interface{}{
+		"action": action,
+		"data":   data,
+	}
+
+	var w = bytes.NewBuffer(nil)
+	var enc = sonic.ConfigDefault.NewEncoder(w)
+	enc.Encode(msg)
+	ps.Socket.WriteMessage(mt, w.Bytes())
 }

@@ -14,15 +14,17 @@ import (
 const MAX_QUEUED_PLAYERS = 128
 
 func ProcessGame(id int64) {
-	QueueGroup.Add(1)
 	defer func() {
-		ps := GetPlayerState(id)
+		ps := Players.Get(id)
 		ps.Socket.Close()
 	}()
-	defer QueueGroup.Done()
+
 	for {
-		ps := GetPlayerState(id)
+		ps := Players.Get(id)
 		mt, message, err := ps.Socket.ReadMessage()
+
+		log.Printf("[%d] Received %s\n", id, string(message))
+
 		if err != nil {
 			log.Printf("read: %s\n", err)
 			break
@@ -39,8 +41,6 @@ func ProcessGame(id int64) {
 			break
 		}
 
-		log.Printf("Action: %s\n", action)
-
 		switch action {
 		case types.UsePowerUp:
 			{
@@ -50,38 +50,30 @@ func ProcessGame(id int64) {
 					if err != nil {
 						log.Printf("read: %s\n", err)
 					}
-					// TODO: Forward
-					log.Printf("Used item %d\n", used)
+
+					Players.BroadcastWithSkip(mt, types.Action(types.UsePowerUp), used, id)
 				}
 			}
 		case types.ChangeReady:
 			{
-				if ps.Status == types.ReadyState(types.Ready) {
-					ps.SafeSetStatus(
-						types.ReadyState(types.Waiting),
-					)
-				} else if ps.Status ==
-					types.ReadyState(types.Waiting) {
-
-					ps.SafeSetStatus(
-						types.ReadyState(types.Ready),
-					)
-
-					ReadyPlayerCount <- <-ReadyPlayerCount + 1
-					var msg = map[string]interface{}{
-						"action": types.Action(types.PlayerCount),
-						"data":   <-ReadyPlayerCount,
-					}
-
-					var w = bytes.NewBuffer(nil)
-					var enc = sonic.ConfigDefault.NewEncoder(w)
-					enc.Encode(msg)
-					// TODO: Forward to everyone
-					ps.Socket.WriteMessage(mt, w.Bytes())
+				status, err := root.Get("data").String()
+				if err != nil {
+					log.Printf("read: %s\n", err)
 				}
+
+				if ps.Status != types.ReadyState(status) {
+					Players.UpdateStatusFor(id, types.ReadyState(status))
+					ps.SendMessage(mt, types.ChangeReady, status)
+
+					if status == types.Ready {
+						Players.Broadcast(mt, types.Action(types.PlayerCount), Players.CountReady())
+						ps.SendMessage(mt, types.ChangeSetting, MyGameState.Settings)
+					}
+				}
+
 			}
 		case types.ChangeSetting:
-			if ps.Status == types.ReadyState(types.Waiting) && MyGameState.Status == types.Pending {
+			if ps.Status == types.ReadyState(types.Ready) && MyGameState.Status == types.Pending {
 				language, err := root.Get("data").Get("language").String()
 				if err != nil {
 					log.Printf("read: %s\n", err)
@@ -99,11 +91,14 @@ func ProcessGame(id int64) {
 					Problem:  problem,
 				})
 
-				// TODO: Forward update to everyone
+				Players.Broadcast(mt, types.Action(types.ChangeSetting), map[string]interface{}{
+					"language": language,
+					"problem":  problem,
+				})
 			}
 		case types.StatusChanged:
 			{
-				if ps.Status == types.ReadyState(types.Waiting) && MyGameState.Status == types.Pending {
+				if ps.Status == types.ReadyState(types.Ready) && MyGameState.Status == types.Pending {
 					state, err := root.Get("data").Get("status").String()
 					if err != nil {
 						log.Printf("read: %s\n", err)
@@ -115,9 +110,14 @@ func ProcessGame(id int64) {
 						break
 					}
 
+					log.Printf("Updating game status %s", types.Running)
+
 					MyGameState.SafeSetStatus(types.Running)
 
-					// TODO: Send change effect
+					Players.Broadcast(mt, types.ChangeReady, types.Active)
+					Players.Broadcast(mt, types.Action(types.StatusChanged), map[string]interface{}{
+						"status": types.Running,
+					})
 				}
 			}
 		case types.Submit:
@@ -162,26 +162,10 @@ func HandleStart(w http.ResponseWriter, r *http.Request) {
 	ps := types.PlayerState{
 		Status: types.Waiting,
 		Socket: conn,
-		SendMessage: func(action types.Action, data interface{}) {
-			QueueGroup.Add(1)
-			defer QueueGroup.Done()
-			var msg = map[string]interface{}{
-				"action": action,
-				"data":   data,
-			}
-
-			var w = bytes.NewBuffer(nil)
-			var enc = sonic.ConfigDefault.NewEncoder(w)
-			enc.Encode(msg)
-			conn.WriteMessage(0, w.Bytes())
-		},
 	}
 
-	id := AddPlayerState(&ps)
+	id := Players.Add(&ps)
+
+	log.Printf("Added player %d\n", id)
 	go ProcessGame(id)
-	QueueGroup.Wait()
-}
-
-func HandleComplete(w http.ResponseWriter, r *http.Request) {
-
 }
