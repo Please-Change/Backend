@@ -67,7 +67,12 @@ func ProcessGame(id int64) {
 
 					if status == types.Ready {
 						Players.Broadcast(mt, types.Action(types.PlayerCount), Players.CountReady())
-						ps.SendMessage(mt, types.ChangeSetting, MyGameState.Settings)
+						ps.SendMessage(mt, types.ChangeSetting,
+							map[string]interface{}{
+								"language": MyGameState.Settings.Language,
+								"problem":  MyGameState.Settings.Problem,
+							},
+						)
 					}
 				}
 
