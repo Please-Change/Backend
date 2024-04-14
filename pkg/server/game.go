@@ -129,6 +129,47 @@ func ProcessGame(id int64) {
 			{
 				if ps.Status == types.Active {
 					// Check
+					program, err := root.Get("program").String()
+					if err != nil {
+						log.Printf("read: %s", err)
+					}
+					var output = make(chan string)
+					var isDone = make(chan bool)
+					var isSuccess = make(chan bool)
+					examiner := NewExaminer()
+					examiner.RunExam(program, output, isDone, isSuccess)
+					for {
+						if <-isDone {
+							if <-isSuccess {
+								if MyGameState.Status != types.Running {
+									Players.Broadcast(mt,
+										types.StatusChanged,
+										map[string]interface{}{
+											"status":  types.End,
+											"success": false,
+										},
+									)
+								} else {
+									Players.BroadcastWithSkip(mt,
+										types.StatusChanged,
+										map[string]interface{}{
+											"status": types.Pending,
+										},
+										id,
+									)
+									ps.SendMessage(mt, types.StatusChanged,
+										map[string]interface{}{
+											"status":  types.End,
+											"success": true,
+										},
+									)
+								}
+							} else {
+								ps.SendMessage(mt, types.SubmitFailed,
+									map[string]interface{}{})
+							}
+						}
+					}
 				}
 			}
 		case types.StatusRequest:

@@ -89,6 +89,10 @@ func (sb *PlayerStateStore) CountReady() int {
 	return count
 }
 
+func IsGameComplete() bool {
+	return MyGameState.Status == types.End
+}
+
 func Serve() {
 	Players = PlayerStateStore{
 		store:  map[int64]*types.PlayerState{},
