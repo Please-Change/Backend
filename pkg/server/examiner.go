@@ -51,16 +51,16 @@ func NewExaminer() Examiner {
 }
 
 func (e Examiner) RunExam(program string, output chan string, isDone chan bool,
-	isSuccess chan bool, language types.Language) {
+	isSuccess chan bool, language types.Language, challenge string) {
 	switch language {
 	case types.C:
 		{
-			exec.Command("docker", "run", "-it", "Runner_C",
+			exec.Command("docker", "run", "-it", "runner_c:latest",
 				"bash", "-c", fmt.Sprintf("\"cd $PWD;echo %s > program.c;"+
 					"echo $(gcc program.c) > compiler.txt;\"", program))
 
-			compilation := exec.Command("docker", "run", "-it", "Runner_C",
-				"bash", "-c", "\"cd $PWD; echo $?;\"")
+			compilation := exec.Command("docker", "run", "-it",
+				"runner_c:latest", "bash", "-c", "\"cd $PWD; echo $?;\"")
 
 			compilationPipe, err := compilation.StdoutPipe()
 
@@ -74,8 +74,8 @@ func (e Examiner) RunExam(program string, output chan string, isDone chan bool,
 			}
 
 			if string(compilationOut) == "1" {
-				exec.Command("docker", "run", "-it", "Runner_C", "bash", "-c",
-					"\"cd $PWD; cat compiler.txt\"")
+				exec.Command("docker", "run", "-it", "runner_c:latest", "bash",
+					"-c", "\"cd $PWD; cat compiler.txt\"")
 				compilationPipe, err := compilation.StdoutPipe()
 
 				if err != nil {
@@ -92,8 +92,14 @@ func (e Examiner) RunExam(program string, output chan string, isDone chan bool,
 				isDone <- true
 			}
 
-			runnerCmd := exec.Command("docker", "run", "-it", "Runner_C",
-				"bash", "-c", "\"cd $PWD; cat result.txt\"")
+			runnerCmd := exec.Command("docker", "run", "-it", "runner_c:latest",
+				"bash", "-c", "\"cd $PWD; echo $(./a.out) > result.txt;")
+
+			resultCheck :=
+				exec.Command("docker", "run", "-it", "runner_c:latest",
+					"diff -q "+"result.txt /usr/share/coderunner/solutions/"+
+						fmt.Sprintf("solution_%s.txt;", challenge)+" echo "+
+						"$?;\"")
 
 			runnerReader, err := runnerCmd.StdoutPipe()
 			if err != nil {
@@ -104,7 +110,6 @@ func (e Examiner) RunExam(program string, output chan string, isDone chan bool,
 			if err != nil {
 
 			}
-
 		}
 	case types.Cpp:
 		{
