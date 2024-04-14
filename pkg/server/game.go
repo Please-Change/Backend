@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/Please-Change/backend/pkg/types"
@@ -92,7 +93,7 @@ func ProcessGame(id int64) {
 				}
 
 				MyGameState.SafeSetSettings(types.GameSettings{
-					Language: language,
+					Language: types.Language(language),
 					Problem:  problem,
 				})
 
@@ -123,54 +124,29 @@ func ProcessGame(id int64) {
 					Players.Broadcast(mt, types.Action(types.StatusChanged), map[string]interface{}{
 						"status": types.Running,
 					})
+					Players.UpdateStatus(types.Active)
 				}
 			}
 		case types.Submit:
 			{
 				if ps.Status == types.Active {
 					// Check
-					program, err := root.Get("program").String()
+					program, err := root.Get("data").Get("program").String()
 					if err != nil {
 						log.Printf("read: %s", err)
 					}
-					var output = make(chan string)
-					var isDone = make(chan bool)
-					var isSuccess = make(chan bool)
-					examiner := NewExaminer()
-					examiner.RunExam(program, output, isDone, isSuccess,
-						MyGameState.Settings.Language)
-					for {
-						if <-isDone {
-							if <-isSuccess {
-								if MyGameState.Status != types.Running {
-									Players.Broadcast(mt,
-										types.StatusChanged,
-										map[string]interface{}{
-											"status":  types.End,
-											"success": false,
-										},
-									)
-								} else {
-									Players.BroadcastWithSkip(mt,
-										types.StatusChanged,
-										map[string]interface{}{
-											"status": types.Pending,
-										},
-										id,
-									)
-									ps.SendMessage(mt, types.StatusChanged,
-										map[string]interface{}{
-											"status":  types.End,
-											"success": true,
-										},
-									)
-								}
-							} else {
-								ps.SendMessage(mt, types.SubmitFailed,
-									map[string]interface{}{})
-							}
-						}
+					log.Printf("Program, %s\n", program)
+
+					language, err := root.Get("data").Get("language").String()
+					if err != nil {
+						log.Printf("read: %s", err)
 					}
+
+					log.Printf("Language, %s\n", language)
+
+					go processSubmition(id, mt, program, types.Language(language), MyGameState.Settings.Problem)
+				} else {
+					log.Printf("Incorrect status %s\n", ps.Status)
 				}
 			}
 		case types.StatusRequest:
@@ -215,4 +191,44 @@ func HandleStart(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Added player %d\n", id)
 	go ProcessGame(id)
+}
+
+func processSubmition(id int64, mt int, program string, language types.Language, challenge string) {
+	examiner := NewExaminer()
+
+	content, err := os.ReadFile("challenges/" + challenge + ".txt")
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	expectedOutput := string(content)
+	res := examiner.RunExam(program, language, expectedOutput)
+
+	ps := Players.Get(id)
+	if MyGameState.Status == types.Running {
+		if res == "" {
+			// Secretly split to waiting
+			MyGameState.SetStatus(types.Pending)
+			Players.BroadcastWithSkip(mt,
+				types.StatusChanged,
+				map[string]interface{}{
+					"status":  types.End,
+					"success": false,
+				},
+				id,
+			)
+			ps.SendMessage(mt, types.StatusChanged,
+				map[string]interface{}{
+					"status":  types.End,
+					"success": true,
+				},
+			)
+
+			// Secretly update player status
+			Players.UpdateStatus(types.Waiting)
+		} else {
+			ps.SendMessage(mt, types.SubmitFailed, res)
+		}
+	}
 }

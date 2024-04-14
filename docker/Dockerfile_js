@@ -1,6 +1,4 @@
 FROM nodejs:20.9.0
 
-COPY ../../internal/solutions /usr/share/coderunner/solutions
-
 WORKDIR /usr/share/coderunner
 

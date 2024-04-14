@@ -1,5 +1,3 @@
 FROM gcc:4.9
 
-COPY solutions/ /usr/share/coderunner/solutions
-
 WORKDIR /usr/share/coderunner

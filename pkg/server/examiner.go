@@ -12,128 +12,180 @@ type Examiner struct {
 	Abort         func()
 }
 
-func Lang2Compiler(language types.Language) string {
-	switch language {
-	case types.Go:
-		{
-			return "go"
-		}
-	case types.C:
-		{
-			return "gcc"
-		}
-	case types.Cpp:
-		{
-			return "gcc"
-		}
-	case types.Rust:
-		{
-			return "rustc"
-		}
-	case types.Python:
-		{
-			return "python3"
-		}
-	case types.JavaScript:
-		{
-			return "node"
-		}
-	default:
-		{
-			return "exit"
-		}
-	}
-}
-
 func NewExaminer() Examiner {
 	var e Examiner
 	return e
 }
 
-func (e Examiner) RunExam(program string, output chan string, isDone chan bool,
-	isSuccess chan bool, language types.Language, challenge string) {
+func (e Examiner) RunExam(program string, language types.Language, challenge string) string {
+	var expectedOutput = challenge
+
 	switch language {
 	case types.C:
 		{
-			exec.Command("docker", "run", "-it", "runner_c:latest",
-				"bash", "-c", fmt.Sprintf("\"cd $PWD;echo %s > program.c;"+
-					"echo $(gcc program.c) > compiler.txt;\"", program))
-
-			compilation := exec.Command("docker", "run", "-it",
-				"runner_c:latest", "bash", "-c", "\"cd $PWD; echo $?;\"")
+			compilation := exec.Command("docker", "run", "-it", "runner_c:latest",
+				"bash", "-c", fmt.Sprintf("echo %s > program.c; gcc program.c; ./a.out", program))
 
 			compilationPipe, err := compilation.StdoutPipe()
 
 			if err != nil {
-
+				return err.Error()
 			}
 
 			var compilationOut []byte
 			_, err = compilationPipe.Read(compilationOut)
 			if err != nil {
+				return err.Error()
 			}
 
-			if string(compilationOut) == "1" {
-				exec.Command("docker", "run", "-it", "runner_c:latest", "bash",
-					"-c", "\"cd $PWD; cat compiler.txt\"")
-				compilationPipe, err := compilation.StdoutPipe()
-
-				if err != nil {
-
+			out := string(compilationOut)
+			if out == expectedOutput {
+				return ""
+			} else {
+				if out == "" {
+					return "Empty file"
 				}
-
-				var compilationOut []byte
-				_, err = compilationPipe.Read(compilationOut)
-				if err != nil {
-				}
-
-				output <- string(compilationOut)
-				isSuccess <- false
-				isDone <- true
-			}
-
-			runnerCmd := exec.Command("docker", "run", "-it", "runner_c:latest",
-				"bash", "-c", "\"cd $PWD; echo $(./a.out) > result.txt;")
-
-			resultCheck :=
-				exec.Command("docker", "run", "-it", "runner_c:latest",
-					"diff -q "+"result.txt /usr/share/coderunner/solutions/"+
-						fmt.Sprintf("solution_%s.txt;", challenge)+" echo "+
-						"$?;\"")
-
-			runnerReader, err := runnerCmd.StdoutPipe()
-			if err != nil {
-
-			}
-			var runnerOut []byte
-			_, err = runnerReader.Read(runnerOut)
-			if err != nil {
-
+				return out
 			}
 		}
 	case types.Cpp:
 		{
+			compilation := exec.Command("docker", "run", "-it", "runner_cpp:latest",
+				"bash", "-c", fmt.Sprintf("echo %s > program.cpp; gcc program.cpp; ./a.out", program))
 
+			compilationPipe, err := compilation.StdoutPipe()
+
+			if err != nil {
+				return err.Error()
+			}
+
+			var compilationOut []byte
+			_, err = compilationPipe.Read(compilationOut)
+			if err != nil {
+				return err.Error()
+			}
+
+			out := string(compilationOut)
+			if out == expectedOutput {
+				return ""
+			} else {
+				if out == "" {
+					return "Empty file"
+				}
+				return out
+			}
 		}
 	case types.Rust:
 		{
+			compilation := exec.Command("docker", "run", "-it", "runner_rust:latest",
+				"bash", "-c", fmt.Sprintf("echo %s > program.rs; rustc program.rs; ./program", program))
 
+			compilationPipe, err := compilation.StdoutPipe()
+
+			if err != nil {
+				return err.Error()
+			}
+
+			var compilationOut []byte
+			_, err = compilationPipe.Read(compilationOut)
+			if err != nil {
+				return err.Error()
+			}
+
+			out := string(compilationOut)
+			if out == expectedOutput {
+				return ""
+			} else {
+				if out == "" {
+					return "Empty file"
+				}
+				return out
+			}
 		}
 	case types.Go:
 		{
+			compilation := exec.Command("docker", "run", "-it", "runner_go:latest",
+				"bash", "-c", fmt.Sprintf("echo %s > main.go; go run .", program))
 
+			compilationPipe, err := compilation.StdoutPipe()
+
+			if err != nil {
+				return err.Error()
+			}
+
+			var compilationOut []byte
+			_, err = compilationPipe.Read(compilationOut)
+			if err != nil {
+				return err.Error()
+			}
+
+			out := string(compilationOut)
+			if out == expectedOutput {
+				return ""
+			} else {
+				if out == "" {
+					return "Empty file"
+				}
+				return out
+			}
 		}
 	case types.JavaScript:
 		{
+			compilation := exec.Command("docker", "run", "-it", "runner_js:latest",
+				"bash", "-c", fmt.Sprintf("echo %s > program.js; node program.js", program))
 
+			compilationPipe, err := compilation.StdoutPipe()
+
+			if err != nil {
+				return err.Error()
+			}
+
+			var compilationOut []byte
+			_, err = compilationPipe.Read(compilationOut)
+			if err != nil {
+				return err.Error()
+			}
+
+			out := string(compilationOut)
+			if out == expectedOutput {
+				return ""
+			} else {
+				if out == "" {
+					return "Empty file"
+				}
+				return out
+			}
 		}
 	case types.Python:
 		{
+			compilation := exec.Command("docker", "run", "-it", "runner_py:latest",
+				"bash", "-c", fmt.Sprintf("echo %s > program.py; python program.py", program))
 
+			compilationPipe, err := compilation.StdoutPipe()
+
+			if err != nil {
+				return err.Error()
+			}
+
+			var compilationOut []byte
+			_, err = compilationPipe.Read(compilationOut)
+			if err != nil {
+				return err.Error()
+			}
+
+			out := string(compilationOut)
+			if out == expectedOutput {
+				return ""
+			} else {
+				if out == "" {
+					return "Empty file"
+				}
+				return out
+			}
 		}
 	default:
 		{
-
+			return "Unknown filetype"
 		}
 	}
 

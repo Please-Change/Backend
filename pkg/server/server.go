@@ -73,6 +73,19 @@ func (sb *PlayerStateStore) UpdateStatusFor(id int64, s types.ReadyState) {
 	sb.store[id].SafeSetStatus(s)
 }
 
+func (sb *PlayerStateStore) UpdateStatus(s types.ReadyState) {
+	sb.RLock()
+	defer sb.RUnlock()
+
+	for id := range sb.store {
+
+		ps := sb.Get(id)
+		if ps.Status == types.Ready || ps.Status == types.Active {
+			sb.store[id].SafeSetStatus(s)
+		}
+	}
+}
+
 func (sb *PlayerStateStore) CountReady() int {
 	sb.RLock()
 	defer sb.RUnlock()

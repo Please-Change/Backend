@@ -1,6 +1,4 @@
 FROM go:1.22.1
 
-COPY ../../internal/solutions /usr/share/coderunner/solutions
-
 WORKDIR /usr/share/coderunner
 
