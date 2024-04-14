@@ -31,8 +31,19 @@ const (
 	Waiting = "waiting"
 )
 
+type Language string
+
+const (
+	C          Language = "c"
+	Cpp                 = "cpp"
+	Go                  = "go"
+	Python              = "python"
+	JavaScript          = "javascript"
+	Rust                = "rust"
+)
+
 type GameSettings struct {
-	Language string
+	Language Language
 	Problem  string
 }
 

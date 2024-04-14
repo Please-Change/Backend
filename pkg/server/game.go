@@ -137,7 +137,8 @@ func ProcessGame(id int64) {
 					var isDone = make(chan bool)
 					var isSuccess = make(chan bool)
 					examiner := NewExaminer()
-					examiner.RunExam(program, output, isDone, isSuccess)
+					examiner.RunExam(program, output, isDone, isSuccess,
+						MyGameState.Settings.Language)
 					for {
 						if <-isDone {
 							if <-isSuccess {
